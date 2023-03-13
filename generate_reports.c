@@ -1,13 +1,36 @@
 
-#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/stat.h>
 #include <syslog.h>
 
-void generate_reports(void) {
-    printf("Generate report function could go here.. you do not have to follow this design but an option if you are stuck");
+void generate_reports() {
+    pid_t pid;
+    int status;
+
+    pid = fork();
+    if (pid < 0) {
+        syslog(LOG_ERR, "fork failed: %m");
+        exit(1);
+    } else if (pid == 0) {
+        // In child process
+        if (execl("/usr/bin/generate_reports", "generate_reports", NULL) == -1) {
+            syslog(LOG_ERR, "execl failed: %m");
+            exit(1);
+        }
+    } else {
+        // In parent process
+        if (waitpid(pid, &status, 0) == -1) {
+            syslog(LOG_ERR, "waitpid failed: %m");
+            exit(1);
+        }
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+            syslog(LOG_INFO, "generate_reports succeeded");
+        } else {
+            syslog(LOG_ERR, "generate_reports failed");
+        }
+    }
 }
 
 
